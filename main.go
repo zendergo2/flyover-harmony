@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 
 	"github.com/gorilla/websocket"
@@ -47,7 +48,8 @@ func process(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		log.Printf("recv: %s", message)
-		cmd := exec.Command("/home/jwb/go-virtual-terminal/test.sh")
+		wd, _ := os.Getwd()
+		cmd := exec.Command(wd + "/test.sh")
 		var outb, errb bytes.Buffer
 		cmd.Stdout = &outb
 		cmd.Stderr = &errb

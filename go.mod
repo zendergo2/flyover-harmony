@@ -1,4 +1,4 @@
-module zendergo2.com/go-virtual-terminal
+module zendergo2.com/flyover-harmony
 
 go 1.18
 
