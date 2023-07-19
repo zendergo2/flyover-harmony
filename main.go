@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"log"
 	"net/http"
-	"os"
-	"os/exec"
 
 	"github.com/gorilla/websocket"
 )
@@ -41,56 +39,31 @@ func process(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer c.Close()
+	vp := &VirtualProcess{
+		stdin:  bytes.Buffer{},
+		stdout: bytes.Buffer{},
+		stderr: bytes.Buffer{},
+		proc:   nil,
+	}
 	for {
+		vp.stdout.Reset()
+		vp.stderr.Reset()
 		_, message, err := c.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
 			break
 		}
 		log.Printf("recv: %s", message)
-		wd, _ := os.Getwd()
-		cmd := exec.Command(wd + "/test.sh")
-		var outb, errb bytes.Buffer
-		cmd.Stdout = &outb
-		cmd.Stderr = &errb
-		// var pipe, _ = cmd.StdoutPipe()
-		// var errpipe, _ = cmd.StderrPipe()
-		inbuf := bytes.Buffer{}
-		inbuf.Write([]byte(message))
-		cmd.Stdin = &inbuf
-		cmd.Run()
-		log.Println("ERR: " + errb.String())
-		var out = outb.Bytes()
-		if bytes.HasSuffix(out, []byte("\n")) {
-			outb.Truncate(len(out) - 1)
-			outb.Write([]byte{'\r', '\n'})
-		}
-		err = c.WriteMessage(websocket.TextMessage, outb.Bytes())
+		vp.stdin.Write(message)
+
+		vp.Start()
+		vp.Wait()
+
+		err = c.WriteMessage(websocket.TextMessage, vp.stdout.Bytes())
 		if err != nil {
 			log.Println("write:", err)
 			break
 		}
-		// scanner := bufio.NewScanner(pipe)
-		// for scanner.Scan() {
-		// 	m := scanner.Text()
-		// 	log.Println(m)
-		// 	// err = c.WriteMessage(websocket.TextMessage, []byte(m))
-		// 	// if err != nil {
-		// 	// 	log.Println("write:", err)
-		// 	// 	break
-		// 	// }
-		// }
-		// log.Println("Started")
-		// errscanner := bufio.NewScanner(errpipe)
-		// for errscanner.Scan() {
-		// 	m := errscanner.Text()
-		// 	log.Println("ERR: " + m)
-		// 	// err = c.WriteMessage(websocket.TextMessage, []byte("ERR: "+m))
-		// 	// if err != nil {
-		// 	// 	log.Println("write:", err)
-		// 	// 	break
-		// 	// }
-		// }
 	}
 
 }
