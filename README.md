@@ -1,7 +1,8 @@
 # flyover-harmony
 
 work in progress/proof of concept :)
-eventually, a virtual terminal
+
+eventually, another terminal client over the web
 
 ## roadmap/ideals
 
