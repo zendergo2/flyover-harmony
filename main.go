@@ -44,18 +44,25 @@ func process(w http.ResponseWriter, r *http.Request) {
 		proc:   nil,
 	}
 	vp.Start()
+	currentMessage := make([]byte, 1024)
+	cmLength := 0
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
 			break
 		}
-		vp.stdin.Write(message)
+		cmLength += len(message)
+		// currentMessage[cmLength:len(message)]message
+		currentMessage = append(currentMessage[cmLength:], message...)
+		vp.stdin.Write(currentMessage)
 
 		result := make([]byte, 1024)
-		vp.stdout.Read(result)
-		log.Printf("recv/send: %s / %s", message, result)
+		i, e := vp.Read(result)
+		log.Printf("Read: %d %s", i, e)
+		log.Printf("recv/send: %s / %s", currentMessage, result)
 		err = c.WriteMessage(websocket.TextMessage, result)
+		currentMessage = []byte{}
 		if err != nil {
 			log.Println("write:", err)
 			break
