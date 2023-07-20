@@ -40,31 +40,28 @@ func process(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 	vp := &VirtualProcess{
-		stdin:  bytes.Buffer{},
-		stdout: bytes.Buffer{},
 		stderr: bytes.Buffer{},
 		proc:   nil,
 	}
+	vp.Start()
 	for {
-		vp.stdout.Reset()
-		vp.stderr.Reset()
 		_, message, err := c.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
 			break
 		}
-		log.Printf("recv: %s", message)
 		vp.stdin.Write(message)
 
-		vp.Start()
-		vp.Wait()
-
-		err = c.WriteMessage(websocket.TextMessage, vp.stdout.Bytes())
+		result := make([]byte, 1024)
+		vp.stdout.Read(result)
+		log.Printf("recv/send: %s / %s", message, result)
+		err = c.WriteMessage(websocket.TextMessage, result)
 		if err != nil {
 			log.Println("write:", err)
 			break
 		}
 	}
+	vp.Wait()
 
 }
 

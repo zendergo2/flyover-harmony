@@ -2,36 +2,27 @@ package main
 
 import (
 	"bytes"
-	"log"
+	"io"
 	"os"
 	"os/exec"
 )
 
 type VirtualProcess struct {
 	proc   *os.Process
-	stdin  bytes.Buffer
-	stdout bytes.Buffer
+	stdin  io.WriteCloser
+	stdout io.ReadCloser
 	stderr bytes.Buffer
 }
 
 func (vp *VirtualProcess) Start() {
+	// convert to StartProcess instead of command
 	wd, _ := os.Getwd()
 	cmd := exec.Command(wd + "/test.sh")
-	cmd.Stdin = &vp.stdin
-	cmd.Stdout = &vp.stdout
-	cmd.Stderr = &vp.stderr
-	cmd.Run()
-	log.Println("stdout:", vp.stdout.String())
-	if vp.stderr.Len() > 0 {
-		log.Println("stderr:", vp.stderr.String())
-	}
-	var out = vp.stdout.Bytes()
-	if bytes.HasSuffix(out, []byte("\n")) {
-		vp.stdout.Truncate(len(out) - 1)
-		vp.stdout.Write([]byte{'\r', '\n'})
-	}
+	vp.stdin, _ = cmd.StdinPipe()
+	vp.stdout, _ = cmd.StdoutPipe()
+	cmd.Start()
 }
 
 func (vp *VirtualProcess) Wait() {
-	//vp.proc.Wait()
+	vp.proc.Wait()
 }
